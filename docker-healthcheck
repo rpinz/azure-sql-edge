@@ -5,7 +5,7 @@ host="mssql-edge"
 port="1433"
 user="${MSSQL_USER:-SA}"
 db="${MSSQL_DB:-master}"
-sqlcmd="/opt/sqlcmd/bin/sqlcmd}"
+sqlcmd="/opt/sqlcmd/bin/sqlcmd"
 
 args=(
 	-S "tcp:$host,$port"
