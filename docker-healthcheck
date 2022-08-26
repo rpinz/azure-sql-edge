@@ -4,19 +4,18 @@ set -eo pipefail
 host="mssql-edge"
 port="1433"
 user="${MSSQL_USER:-SA}"
-db="${MSSQL_DB:-master"
-export SQLCMDPASSWORD="${MSSQL_SA_PASSWORD:-}"
+db="${MSSQL_DB:-master}"
+sqlcmd="/opt/sqlcmd/bin/sqlcmd}"
 
 args=(
-	# force mssql to not use the local unix socket (test "external" connectibility)
 	-S "tcp:$host,$port"
 	-U "$user"
 	-d "$db"
-	-Q "SELECT 1"
 	-b
 )
 
-if select="$(/opt/sqlcmd/bin/sqlcmd ${args[@]})" && [[ $? == 0 && "$select" != "" ]]; then
+export SQLCMDPASSWORD="${MSSQL_SA_PASSWORD:-}"
+if select="$(${sqlcmd} ${args[@]} -Q "SELECT 1" 2>/dev/null)" && [[ $? == 0 && "$select" != "" ]]; then
 	exit 0
 fi
 
