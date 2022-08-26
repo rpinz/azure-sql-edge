@@ -18,6 +18,8 @@ services:
       dockerfile: Dockerfile
     cap_add:
       - SYS_PTRACE
+    command:
+      - "--accept-eula"
     container_name: mssql-edge
     dns:
       - 1.1.1.1
@@ -27,9 +29,12 @@ services:
       - 4.4.4.4
     env_file: .env
     environment:
-      MSSQL_SA_PASSWORD_FILE: /run/secrets/mssql_secret
+      ACCEPT_EULA: Y
+      MSSQL_PID: Developer
+      MSSQL_AGENT_ENABLED: True
       MSSQL_TCP_PORT: 1433
-      SQLCMDPASSWORD: $${MSSQL_SA_PASSWORD}
+      MSSQL_SA_PASSWORD_FILE: /run/secrets/mssql_secret
+      TZ: Etc/UTC
     healthcheck:
       test:
         - "CMD"
