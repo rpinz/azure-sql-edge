@@ -19,7 +19,7 @@ REGISTRIES=(
 
 # os vendor
 OSVENDORS=(
-  "azure-sql-edge"
+  "mcr.microsoft.com/azure-sql-edge"
 )
 
 # os versions
@@ -53,29 +53,32 @@ EDGEVERSION=""
 OSVENDOR=""
 OSVERSION=""
 REGISTRY=""
+COMMAND=""
+NO_CACHE=""
 
 # functions
 
 usage() {
-  echo " 🐳 ${0:-build.sh} < local | build | buildx > [ no-cache ]"
+  echo " 🐳 ${0:-build.sh} < create | destroy < local | build | buildx > > [ no-cache ]"
   echo
-  echo " local|build|buildx - (local) container(s)"
-  echo "                    - (build) container(s) and push to registry"
-  echo "                    - (buildx) multi-arch container(s) and push to registry"
+  echo " create|destroy - create/destroy buildx builder"
+  echo "          local - (local) container(s)"
+  echo "          build - (build) container(s) and push to registry"
+  echo "         buildx - (buildx) multi-arch container(s) and push to registry"
   echo "           no-cache - build without cache"
 }
 
-builder_type() {
+get_command() {
   echo "${1:-local}"
 }
 
-nocache() {
+get_nocache() {
   if [ "${1:-}" = "no" ]; then
     echo "--no-cache"
   fi
 }
 
-args() {
+get_args() {
   DOCKER_ARGS=(
     --tag "$1"
     --build-arg "OSVENDOR=$OSVENDOR"
@@ -96,37 +99,50 @@ push() {
 }
 
 pull() {
-  if [ "$(docker images | grep -e ${OSVENDOR}.*${OSVERSION})" = "" ]; then
+  if [ "$COMMAND" != "buildx" -a "$(docker images | grep -e ${OSVENDOR}.*${OSVERSION})" = "" ]; then
     echo " 🐳 Pulling $1"
     docker pull "$1"
-  else
-    echo " 🐳 Found images: $1"
   fi
 }
 
 build() {
-  args $*
+  get_args $*
   echo " 🐳 Building $1 for $OSVENDOR $OSVERSION"
   docker build $NO_CACHE ${DOCKER_ARGS[@]} .
 }
 
 buildx_create() {
-  if [ "$BUILDER_TYPE" = "buildx" ]; then
-    echo " 🐳 Creating buildx $1"
-    docker buildx create --name "$1" --driver-opt "network=host" --use --bootstrap
+  echo " 🐳 Creating buildx $1"
+  docker buildx create --name "$1" --driver-opt "network=host" --bootstrap
+}
+
+buildx_destroy() {
+  echo " 🐳 Removing buildx $1"
+  docker buildx rm "$1"
+}
+
+buildx_use() {
+  echo " 🐳 Using buildx $1"
+  docker buildx use "$1"
+}
+
+buildx_pull() {
+  if [ "$COMMAND" = "buildx" ]; then
+    echo " 🐳 Pulling dockerfile:*"
+    pull docker.io/docker/dockerfile:1
+    pull docker.io/docker/dockerfile:latest
+    pull docker.io/moby/buildkit:buildx-stable-1
   fi
 }
 
-buildx_rm() {
-  if [ "$BUILDER_TYPE" = "buildx" ]; then
-    echo " 🐳 Removing buildx $1"
-    docker buildx rm "$1"
-  fi
+buildx_prune() {
+  echo " 🐳 Pruning buildx $1"
+  docker buildx prune
 }
 
 buildx() {
-  args $*
-  if [ "$BUILDER_TYPE" = "buildx" ]; then
+  get_args $*
+  if [ "$COMMAND" = "buildx" ]; then
     echo " 🐳 Buildxing $1 for $OSVENDOR $OSVERSION"
     docker buildx build $NO_CACHE --platform "${OSPLATFORMS// }" ${DOCKER_ARGS[@]} --tag "${REGISTRY}/${EDGE}:latest" --push .
   fi
@@ -140,14 +156,12 @@ builder() {
       done
     ;;
     "build")
-      pull "mcr.microsoft.com/${OSVENDOR}:${OSVERSION}"
       for REGISTRY in ${REGISTRIES[@]}; do
         build "${REGISTRY}/${EDGE}:${OSVERSION}" \
           && push "${REGISTRY}/${EDGE}:${OSVERSION}"
       done
     ;;
     "local")
-      pull "mcr.microsoft.com/${OSVENDOR}:${OSVERSION}"
       build "${EDGE}:${OSVERSION}"
     ;;
     *)
@@ -156,20 +170,37 @@ builder() {
 }
 
 main() {
+  COMMAND="$(get_command ${1:-usage})"
+  NO_CACHE="$(get_nocache ${2:-})"
+
+  case "$COMMAND" in
+    "create")
+      buildx_create "$EDGE" || return 0
+      buildx_use "$EDGE"
+      buildx_pull
+      COMMAND="buildx"
+    ;;
+    "destroy")
+      buildx_destroy "$EDGE" && exit 0 || exit 1
+    ;;
+    "buildx")
+      buildx_use "$EDGE"
+      buildx_pull
+    ;;
+    "usage")
+      usage $*
+  esac
+
   for OSVENDOR in ${OSVENDORS[@]}; do
     for OSVERSION in ${OSVERSIONS[@]}; do
+      pull "${OSVENDOR}:${OSVERSION}"
       for EDGEVERSION in ${EDGEVERSIONS[@]}; do
-        builder "$BUILDER_TYPE"
+        builder "$COMMAND"
       done
     done
   done
 }
 
-BUILDER_TYPE="$(builder_type ${1:-})"
-NO_CACHE="$(nocache ${2:-})"
-
-buildx_create "$EDGE"
 main $*
-buildx_rm "$EDGE"
 
 # EOF
