@@ -24,7 +24,7 @@ OSVENDORS=(
 
 # os versions
 OSVERSIONS=(
-  "latest" # 18.04
+  "1.0.6"
 )
 
 # os platforms
@@ -33,6 +33,11 @@ OSPLATFORMS=(
   "linux/arm64,"
   #"linux/arm/v7,"
   #"linux/arm/v6,"
+)
+
+# edge versions
+EDGEVERSIONS=(
+  "1.0.6"
 )
 
 #
@@ -46,6 +51,7 @@ OSPLATFORMS="${OSPLATFORMS%?}" # remove last character (trailing comma)
 
 EDGE="azure-sql-edge"
 DOCKER_ARGS=()
+EDGEVERSION=""
 OSVENDOR=""
 OSVERSION=""
 REGISTRY=""
@@ -76,6 +82,7 @@ args() {
     --tag "$1"
     --build-arg "OSVENDOR=$OSVENDOR"
     --build-arg "OSVERSION=$OSVERSION"
+    --build-arg "EDGEVERSION=$EDGEVERSION"
   )
 }
 
@@ -101,7 +108,7 @@ pull() {
 
 build() {
   args $*
-  echo " 🐳 Building $1 for ${OSVENDOR^} ${OSVERSION^}"
+  echo " 🐳 Building $1 for ${OSVENDOR} ${OSVERSION}"
   docker build $NO_CACHE ${DOCKER_ARGS[@]} .
 }
 
@@ -122,8 +129,8 @@ buildx_rm() {
 buildx() {
   args $*
   if [ "$BUILDER_TYPE" = "buildx" ]; then
-    echo " 🐳 Buildxing $1 for ${OSVENDOR^} ${OSVERSION^}"
-    docker buildx build $NO_CACHE --platform "${OSPLATFORMS// }" ${DOCKER_ARGS[@]} --push .
+    echo " 🐳 Buildxing $1 for ${OSVENDOR} ${OSVERSION}"
+    docker buildx build $NO_CACHE --platform "${OSPLATFORMS// }" ${DOCKER_ARGS[@]} --tag "${REGISTRY}/${EDGE}:latest" --push .
   fi
 }
 
@@ -153,7 +160,9 @@ builder() {
 main() {
   for OSVENDOR in ${OSVENDORS[@]}; do
     for OSVERSION in ${OSVERSIONS[@]}; do
-      builder "$BUILDER_TYPE"
+      for EDGEVERSION in ${EDGEVERSIONS[@]}; do
+        builder "$BUILDER_TYPE"
+      done
     done
   done
 }
