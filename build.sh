@@ -169,6 +169,17 @@ builder() {
   esac
 }
 
+loop() {
+  for OSVENDOR in ${OSVENDORS[@]}; do
+    for OSVERSION in ${OSVERSIONS[@]}; do
+      pull "${OSVENDOR}:${OSVERSION}"
+      for EDGEVERSION in ${EDGEVERSIONS[@]}; do
+        builder "$COMMAND"
+      done
+    done
+  done
+}
+
 main() {
   COMMAND="$(get_command ${1:-usage})"
   NO_CACHE="$(get_nocache ${2:-})"
@@ -179,6 +190,8 @@ main() {
       buildx_use "$EDGE"
       buildx_pull
       COMMAND="buildx"
+      loop $*
+      buildx_stop
     ;;
     "destroy")
       buildx_destroy "$EDGE" && exit 0 || exit 1
@@ -186,19 +199,15 @@ main() {
     "buildx")
       buildx_use "$EDGE"
       buildx_pull
+      loop $*
+      buildx_stop
+    ;;
+    "build"|"local")
+      loop $*
     ;;
     "usage")
       usage $*
   esac
-
-  for OSVENDOR in ${OSVENDORS[@]}; do
-    for OSVERSION in ${OSVERSIONS[@]}; do
-      pull "${OSVENDOR}:${OSVERSION}"
-      for EDGEVERSION in ${EDGEVERSIONS[@]}; do
-        builder "$COMMAND"
-      done
-    done
-  done
 }
 
 main $*
