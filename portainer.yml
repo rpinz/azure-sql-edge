@@ -1,0 +1,48 @@
+---
+version: '3.9'
+
+volumes:
+  mssql_edge_volume:
+
+services:
+  mssql-edge:
+    cap_add:
+      - SYS_PTRACE
+    command:
+      - "--accept-eula"
+    container_name: mssql-edge
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
+      - 8.8.8.8
+      - 8.8.4.4
+      - 4.4.4.4
+    environment:
+      ACCEPT_EULA: Y
+      MSSQL_PID: Developer
+      MSSQL_AGENT_ENABLED: True
+      MSSQL_TCP_PORT: $SQL_PORT         # add SQL_PORT environment variable in portainer
+      MSSQL_SA_PASSWORD: $SQL_PASSWORD  # add SQL_PASSWORD environment variable in portainer
+      TZ: Etc/UTC
+    healthcheck:
+      test:
+        - "CMD"
+        - "/opt/sqlcmd/bin/docker-healthcheck"
+      interval: 10s
+      timeout: 10s
+      start_period: 10s
+      retries: 10
+    hostname: mssql-edge
+    image: 'docker.io/rpinz/azure-sql-edge:latest'
+    ports:
+      - target: $SQL_PORT
+        published: $SQL_PORT
+        protocol: tcp
+        mode: host
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: mssql_edge_volume
+        target: /var/opt/mssql
+        volume:
+          nocopy: false
