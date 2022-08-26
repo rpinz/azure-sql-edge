@@ -106,7 +106,7 @@ pull() {
 
 build() {
   args $*
-  echo " 🐳 Building $1 for ${OSVENDOR} ${OSVERSION}"
+  echo " 🐳 Building $1 for $OSVENDOR $OSVERSION"
   docker build $NO_CACHE ${DOCKER_ARGS[@]} .
 }
 
@@ -127,7 +127,7 @@ buildx_rm() {
 buildx() {
   args $*
   if [ "$BUILDER_TYPE" = "buildx" ]; then
-    echo " 🐳 Buildxing $1 for ${OSVENDOR} ${OSVERSION}"
+    echo " 🐳 Buildxing $1 for $OSVENDOR $OSVERSION"
     docker buildx build $NO_CACHE --platform "${OSPLATFORMS// }" ${DOCKER_ARGS[@]} --tag "${REGISTRY}/${EDGE}:latest" --push .
   fi
 }
