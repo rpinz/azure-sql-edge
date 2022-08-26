@@ -198,16 +198,17 @@ main() {
       buildx_pull
       COMMAND="buildx"
       loop $*
-      buildx_stop
+      buildx_stop "$EDGE"
     ;;
     "destroy")
+      buildx_stop "$EDGE"
       buildx_destroy "$EDGE" && exit 0 || exit 1
     ;;
     "buildx")
       buildx_use "$EDGE"
       buildx_pull
       loop $*
-      buildx_stop
+      buildx_stop "$EDGE"
     ;;
     "build"|"local")
       loop $*
