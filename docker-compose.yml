@@ -14,7 +14,11 @@ volumes:
 services:
   mssql-edge:
     build:
-      context: https://github.com/rpinz/azure-sql-edge.git
+      args:
+        OSVENDOR: mcr.microsoft.com/azure-sql-edge
+        OSVERSION: 1.0.6
+        EDGEVERSION: 1.0.6
+      context: .
       dockerfile: Dockerfile
     cap_add:
       - SYS_PTRACE
@@ -24,9 +28,8 @@ services:
     dns:
       - 1.1.1.1
       - 1.0.0.1
-      - 8.8.8.8
-      - 8.8.4.4
-      - 4.4.4.4
+      #- 8.8.8.8
+      #- 8.8.4.4
     env_file: .env
     environment:
       ACCEPT_EULA: Y
@@ -44,7 +47,7 @@ services:
       start_period: 10s
       retries: 10
     hostname: mssql-edge
-    image: 'docker.io/rpinz/azure-sql-edge:latest'
+    image: 'rpinz/azure-sql-edge:latest'
     #network: mssql_edge_network
     ports:
       - target: 1433
