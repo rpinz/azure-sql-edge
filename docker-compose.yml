@@ -1,0 +1,61 @@
+---
+version: '3.9'
+
+secrets:
+  mssql_secret:
+    file: ./secrets/mssql_secret.txt
+    
+networks:
+  mssql_edge_network:
+
+volumes:
+  mssql_edge_volume:
+
+services:
+  mssql-edge:
+    build:
+      context: https://github.com/rpinz/azure-sql-edge.git
+      dockerfile: Dockerfile
+    cap_add:
+      - SYS_PTRACE
+    container_name: mssql-edge
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
+      - 8.8.8.8
+      - 8.8.4.4
+      - 4.4.4.4
+    env_file: .env
+    environment:
+      MSSQL_SA_PASSWORD_FILE: /run/secrets/mssql_secret
+      MSSQL_TCP_PORT: 1433
+      SQLCMDPASSWORD: $${MSSQL_SA_PASSWORD}
+    healthcheck:
+      test:
+        - "CMD"
+        - "/opt/sqlcmd/bin/docker-healthcheck"
+      interval: 10s
+      timeout: 10s
+      start_period: 10s
+      retries: 10
+    hostname: mssql-edge
+    image: 'docker.io/rpinz/azure-sql-edge:latest'
+    #network: mssql_edge_network
+    ports:
+      - target: 1433
+        published: 1433
+        protocol: tcp
+        mode: host
+    restart: unless-stopped
+    secrets:
+      - source: mssql_secret
+        target: mssql_secret
+    volumes:
+      - type: volume
+        source: mssql_edge_volume
+        target: /var/opt/mssql
+        volume:
+          nocopy: false
+      - type: bind
+        source: ./mssql.conf
+        target: /var/opt/mssql/mssql.conf

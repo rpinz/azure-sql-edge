@@ -1,0 +1,23 @@
+#!/bin/bash
+set -eo pipefail
+
+host="mssql-edge"
+port="1433"
+user="${MSSQL_USER:-SA}"
+db="${MSSQL_DB:-master"
+export SQLCMDPASSWORD="${MSSQL_SA_PASSWORD:-}"
+
+args=(
+	# force mssql to not use the local unix socket (test "external" connectibility)
+	-S "tcp:$host,$port"
+	-U "$user"
+	-d "$db"
+	-Q "SELECT 1"
+	-b
+)
+
+if select="$(/opt/sqlcmd/bin/sqlcmd ${args[@]})" && [[ $? == 0 && "$select" != "" ]]; then
+	exit 0
+fi
+
+exit 1
