@@ -65,7 +65,7 @@ usage() {
   echo "          local - (local) container(s)"
   echo "          build - (build) container(s) and push to registry"
   echo "         buildx - (buildx) multi-arch container(s) and push to registry"
-  echo "           no-cache - build without cache"
+  echo "       no-cache - build without cache"
 }
 
 get_command() {
@@ -124,6 +124,13 @@ buildx_destroy() {
 buildx_use() {
   echo " 🐳 Using buildx $1"
   docker buildx use "$1"
+}
+
+buildx_stop() {
+  if [ "$COMMAND" = "buildx" ]; then
+    echo " 🐳 Stopping buildx $1"
+    docker buildx stop "$1"
+  fi
 }
 
 buildx_pull() {
